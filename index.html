@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Điều Khiển HRV Thông Minh</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #007bff; --success: #28a745; --danger: #dc3545; --warning: #ffc107;
+            --bg-color: #f4f7f6; --card-bg: #ffffff; --text-dark: #333; --text-muted: #6c757d;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color); color: var(--text-dark);
+            margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center;
+        }
+
+        .container { width: 100%; max-width: 500px; }
+
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 0 10px; }
+        .header h2 { margin: 0; font-size: 22px; color: var(--primary); }
+        .wifi-status { font-size: 24px; color: var(--danger); transition: color 0.3s; }
+
+        .tabs { display: flex; gap: 10px; margin-bottom: 15px; }
+        .tab-btn {
+            flex: 1; padding: 12px; border: none; border-radius: 8px;
+            background: #e9ecef; color: var(--text-muted); font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.3s;
+        }
+        .tab-btn.active { background: var(--primary); color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .card { background-color: var(--card-bg); border-radius: 12px; padding: 20px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .card-title { font-size: 16px; font-weight: 600; margin: 0 0 15px 0; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+
+        /* Khóa giao diện khi chưa kết nối */
+        .lock-overlay {
+            opacity: 0.4;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .status-msg { color: var(--danger); font-weight: bold; text-align: center; margin-bottom: 15px; display: block; }
+        .status-msg.connected { display: none; }
+
+        .power-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .power-btn {
+            background: #eee; border: none; border-radius: 50%; width: 60px; height: 60px;
+            font-size: 24px; color: var(--text-muted); cursor: pointer; transition: 0.3s;
+        }
+        .power-btn.active { background: var(--success); color: white; box-shadow: 0 4px 10px rgba(40, 167, 69, 0.4); }
+
+        .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;}
+        .mode-btn {
+            padding: 12px 10px; border: 2px solid #eee; border-radius: 8px; background: white;
+            font-size: 14px; font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 5px;
+        }
+        .mode-btn.active { border-color: var(--primary); color: var(--primary); background: #e6f2ff; }
+        .auto-mode { grid-column: span 2; }
+
+        .slider-group { margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #eee;}
+        .slider-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; font-weight: 600;}
+        input[type=range] { width: 100%; accent-color: var(--primary); }
+
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; margin-bottom: 5px; font-size: 14px; font-weight: 500;}
+        .input-wrapper { position: relative; }
+        .input-wrapper input { width: 100%; padding: 10px 40px 10px 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
+        .toggle-eye { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); cursor: pointer; }
+        
+        .btn-full { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        
+        .timer-row { display: flex; gap: 10px; margin-bottom: 15px; }
+        .timer-row input, .timer-row select { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-family: inherit;}
+        .schedule-list { list-style: none; padding: 0; margin: 15px 0 0 0; }
+        .schedule-item { display: flex; justify-content: space-between; background: #e9ecef; padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 14px; align-items: center;}
+        .del-btn { color: var(--danger); cursor: pointer; border: none; background: none; font-size: 16px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2><i class="fa-solid fa-fan fa-spin" style="color: var(--primary);"></i> Máy HRV</h2>
+        <i id="wifiIcon" class="fa-solid fa-wifi wifi-status" title="Trạng thái kết nối"></i>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('main')"><i class="fa-solid fa-sliders"></i> Điều Khiển</button>
+        <button class="tab-btn" onclick="switchTab('settings')"><i class="fa-solid fa-gear"></i> Cài Đặt</button>
+    </div>
+
+    <div id="tab-main" class="tab-content active">
+        <span id="connectionWarning" class="status-msg">⚠️ Vui lòng chờ kết nối MQTT để hiển thị các chức năng điều khiển.</span>
+        
+        <div id="controlWrapper" class="lock-overlay">
+            <div class="card">
+                <div class="power-section">
+                    <span style="font-weight: 600; font-size: 16px;">Nguồn Chính</span>
+                    <button id="powerBtn" class="power-btn" onclick="togglePower()"><i class="fa-solid fa-power-off"></i></button>
+                </div>
+
+                <h3 class="card-title" style="border:none; padding:0; margin-bottom: 10px;">Chế Độ Quạt</h3>
+                <div class="mode-grid">
+                    <button id="modeExhaust" class="mode-btn" onclick="setMode('hút')">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i> Chỉ Hút Ra
+                    </button>
+                    <button id="modeIntake" class="mode-btn" onclick="setMode('thổi')">
+                        <i class="fa-solid fa-arrow-right-to-bracket"></i> Chỉ Thổi Vào
+                    </button>
+                    <button id="modeAuto" class="mode-btn auto-mode" onclick="setMode('tự động')">
+                        <i class="fa-solid fa-rotate"></i> Chế Độ Tự Động
+                    </button>
+                </div>
+
+                <div class="input-group" style="background: #e6f2ff; padding: 10px; border-radius: 8px;">
+                    <label style="color: var(--primary);"><i class="fa-solid fa-stopwatch"></i> Chu kỳ luân phiên Auto (giây):</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="number" id="autoDuration" value="75" min="10" max="300" style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 8px;">
+                        <button class="btn-full" style="flex: 1; margin: 0; font-size: 14px;" onclick="publishAutoDuration()">Cập Nhật</button>
+                    </div>
+                </div>
+
+                <h3 class="card-title" style="border:none; padding:0; margin-top: 20px; margin-bottom: 10px;">Cài Đặt Tốc Độ Độc Lập</h3>
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <span><i class="fa-solid fa-arrow-right-from-bracket" style="color:var(--text-muted)"></i> Tốc độ Hút</span>
+                        <span id="valExhaust">50%</span>
+                    </div>
+                    <input type="range" id="speedExhaust" min="10" max="100" value="50" oninput="updateSpeedLabel('exhaust', this.value)" onchange="publishSpeed('exhaust', this.value)">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <span><i class="fa-solid fa-arrow-right-to-bracket" style="color:var(--text-muted)"></i> Tốc độ Thổi</span>
+                        <span id="valIntake">50%</span>
+                    </div>
+                    <input type="range" id="speedIntake" min="10" max="100" value="50" oninput="updateSpeedLabel('intake', this.value)" onchange="publishSpeed('intake', this.value)">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <span><i class="fa-solid fa-rotate" style="color:var(--text-muted)"></i> Tốc độ Tự Động</span>
+                        <span id="valAuto">50%</span>
+                    </div>
+                    <input type="range" id="speedAuto" min="10" max="100" value="50" oninput="updateSpeedLabel('auto', this.value)" onchange="publishSpeed('auto', this.value)">
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title"><i class="fa-regular fa-calendar-check"></i> Hẹn Giờ Theo Lịch</h3>
+                <div class="timer-row">
+                    <input type="time" id="scheduleTime" required>
+                    <select id="scheduleAction">
+                        <option value="power_off">Tắt Máy</option>
+                        <option value="mode_auto">Bật - Tự Động</option>
+                        <option value="mode_exhaust">Bật - Chỉ Hút</option>
+                        <option value="mode_intake">Bật - Chỉ Thổi</option>
+                    </select>
+                </div>
+                <button class="btn-full" style="background-color: var(--success);" onclick="addSchedule()">Thêm Lịch Trình</button>
+                <ul id="scheduleList" class="schedule-list"></ul>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-settings" class="tab-content">
+        <div class="card">
+            <h3 class="card-title"><i class="fa-solid fa-network-wired"></i> Cấu Hình MQTT HiveMQ</h3>
+            <div class="input-group">
+                <label>Host (WebSocket)</label>
+                <input type="text" id="mqttHost" value="0256b04eb4254d4e8c100df19b4db3f7.s1.eu.hivemq.cloud">
+            </div>
+            <div class="input-group">
+                <label>Username</label>
+                <input type="text" id="mqttUser" value="ngoctuyka">
+            </div>
+            <div class="input-group">
+                <label>Password</label>
+                <div class="input-wrapper">
+                    <input type="password" id="mqttPass" value="Tu12345678@">
+                    <i class="fa-solid fa-eye-slash toggle-eye" onclick="togglePassword()"></i>
+                </div>
+            </div>
+            <button class="btn-full" onclick="connectMQTT()">Kết Nối Lại Theo Thông Số Mới</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let isPowerOn = false; // Biến này sẽ cập nhật thuần túy dựa vào phản hồi từ ESP32
+    let mqttClient = null;
+    let schedules = [];
+
+    window.onload = function() {
+        connectMQTT();
+        setInterval(checkSchedules, 10000); 
+    };
+
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`tab-${tabId}`).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+
+    function togglePassword() {
+        const passInput = document.getElementById('mqttPass');
+        const eyeIcon = document.querySelector('.toggle-eye');
+        if (passInput.type === 'password') {
+            passInput.type = 'text';
+            eyeIcon.classList.replace('fa-eye-slash', 'fa-eye');
+        } else {
+            passInput.type = 'password';
+            eyeIcon.classList.replace('fa-eye', 'fa-eye-slash');
+        }
+    }
+
+    function connectMQTT() {
+        const host = document.getElementById('mqttHost').value;
+        const user = document.getElementById('mqttUser').value;
+        const pass = document.getElementById('mqttPass').value;
+        const wifiIcon = document.getElementById('wifiIcon');
+        
+        const controlWrapper = document.getElementById('controlWrapper');
+        const connectionWarning = document.getElementById('connectionWarning');
+
+        wifiIcon.style.color = 'var(--warning)'; 
+        const brokerUrl = `wss://${host}:8884/mqtt`;
+        
+        const options = {
+            clientId: 'HRV_Web_' + Math.random().toString(16).substr(2, 8),
+            username: user,
+            password: pass
+        };
+
+        if(mqttClient) mqttClient.end();
+
+        try {
+            mqttClient = mqtt.connect(brokerUrl, options);
+            
+            mqttClient.on('connect', () => { 
+                wifiIcon.style.color = 'var(--success)'; 
+                console.log("Đã kết nối HiveMQ!"); 
+                
+                controlWrapper.classList.remove('lock-overlay');
+                connectionWarning.classList.add('connected');
+
+                // ĐĂNG KÝ NHẬN TRẠNG THÁI THỰC TẾ TỪ ESP32 (Phản hồi 2 chiều)
+                mqttClient.subscribe("hrv/status/#");
+            });
+
+            // XỬ LÝ DỮ LIỆU PHẢN HỒI TỪ ESP32 GỬI VỀ ĐỂ CẬP NHẬT GIAO DIỆN
+            mqttClient.on('message', (topic, payload) => {
+                const msg = payload.toString();
+                console.log(`[MQTT Status] ${topic} -> ${msg}`);
+
+                if (topic === "hrv/status/power") {
+                    isPowerOn = (msg === "ON");
+                    const btn = document.getElementById('powerBtn');
+                    if (isPowerOn) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                }
+                else if (topic === "hrv/status/mode") {
+                    document.getElementById('modeExhaust').classList.remove('active');
+                    document.getElementById('modeIntake').classList.remove('active');
+                    document.getElementById('modeAuto').classList.remove('active');
+
+                    if (msg === "EXHAUST") document.getElementById('modeExhaust').classList.add('active');
+                    else if (msg === "INTAKE") document.getElementById('modeIntake').classList.add('active');
+                    else if (msg === "AUTO") document.getElementById('modeAuto').classList.add('active');
+                }
+                else if (topic === "hrv/status/speed_exhaust") {
+                    document.getElementById('speedExhaust').value = msg;
+                    document.getElementById('valExhaust').innerText = msg + '%';
+                }
+                else if (topic === "hrv/status/speed_intake") {
+                    document.getElementById('speedIntake').value = msg;
+                    document.getElementById('valIntake').innerText = msg + '%';
+                }
+                else if (topic === "hrv/status/speed_auto") {
+                    document.getElementById('speedAuto').value = msg;
+                    document.getElementById('valAuto').innerText = msg + '%';
+                }
+                else if (topic === "hrv/status/auto_duration") {
+                    document.getElementById('autoDuration').value = msg;
+                }
+            });
+
+            mqttClient.on('error', () => { handleDisconnect(wifiIcon, controlWrapper, connectionWarning); });
+            mqttClient.on('offline', () => { handleDisconnect(wifiIcon, controlWrapper, connectionWarning); });
+        } catch (err) {
+            handleDisconnect(wifiIcon, controlWrapper, connectionWarning);
+        }
+    }
+
+    function handleDisconnect(icon, wrapper, warning) {
+        icon.style.color = 'var(--danger)';
+        wrapper.classList.add('lock-overlay');
+        warning.classList.remove('connected');
+    }
+
+    function publishCommand(topic_suffix, payload) {
+        const topic = `hrv/control/${topic_suffix}`;
+        if (mqttClient && mqttClient.connected) {
+            // Thêm retain: true để lệnh điều khiển được lưu lại trên Broker đề phòng ESP ngắt kết nối tạm thời
+            mqttClient.publish(topic, payload.toString(), { qos: 1, retain: true });
+        }
+    }
+
+    // --- CÁC HÀM GỬI LỆNH ĐIỀU KHIỂN (KHÔNG TỰ CẬP NHẬT UI TẠI ĐÂY) ---
+    function togglePower() {
+        // Gửi lệnh ngược lại với biến trạng thái thực tại mà ESP32 đang báo cáo
+        if (isPowerOn) {
+            publishCommand('power', 'OFF');
+        } else {
+            publishCommand('power', 'ON');
+        }
+    }
+
+    function setMode(mode) {
+        if (mode === 'hút') {
+            publishCommand('mode', 'EXHAUST');
+        } else if (mode === 'thổi') {
+            publishCommand('mode', 'INTAKE');
+        } else if (mode === 'tự động') {
+            publishCommand('mode', 'AUTO');
+        }
+    }
+
+    // Hàm này giữ nguyên để kéo thanh trượt mượt mà (Visual feedback tạm thời khi kéo)
+    function updateSpeedLabel(mode, value) {
+        if (mode === 'exhaust') document.getElementById('valExhaust').innerText = value + '%';
+        if (mode === 'intake') document.getElementById('valIntake').innerText = value + '%';
+        if (mode === 'auto') document.getElementById('valAuto').innerText = value + '%';
+    }
+
+    // Chỉ khi thả tay ra (onchange), giá trị mới được gửi lên ESP32
+    function publishSpeed(mode, value) { 
+        publishCommand(`speed_${mode}`, value); 
+    }
+
+    function publishAutoDuration() {
+        const duration = document.getElementById('autoDuration').value;
+        if(duration >= 10) {
+            publishCommand('auto_duration', duration);
+        } else {
+            alert("Vui lòng nhập tối thiểu 10s.");
+        }
+    }
+
+    // --- LOGIC HẸN GIỜ THỜI GIAN THỰC THỰC THI QUA LỆNH MQTT ---
+    function addSchedule() {
+        const timeVal = document.getElementById('scheduleTime').value;
+        const actionSel = document.getElementById('scheduleAction');
+        const actionVal = actionSel.value;
+        const actionText = actionSel.options[actionSel.selectedIndex].text;
+
+        if (!timeVal) return alert("Vui lòng chọn thời gian!");
+
+        const newId = Date.now();
+        schedules.push({ id: newId, time: timeVal, action: actionVal, text: actionText, executed: false });
+        renderSchedules();
+    }
+
+    function removeSchedule(id) {
+        schedules = schedules.filter(s => s.id !== id);
+        renderSchedules();
+    }
+
+    function renderSchedules() {
+        const list = document.getElementById('scheduleList');
+        list.innerHTML = '';
+        schedules.forEach(s => {
+            let bgColor = s.executed ? '#d4edda' : '#e9ecef';
+            list.innerHTML += `
+                <li class="schedule-item" style="background: ${bgColor};">
+                    <div>
+                        <b style="font-size: 16px;">${s.time}</b> - ${s.text} 
+                        ${s.executed ? '<span style="color:green; font-size: 12px;">(Đã chạy)</span>' : ''}
+                    </div>
+                    <button class="del-btn" onclick="removeSchedule(${s.id})"><i class="fa-solid fa-trash-can"></i></button>
+                </li>
+            `;
+        });
+    }
+
+    function checkSchedules() {
+        if(schedules.length === 0) return;
+        
+        const now = new Date();
+        const currentHours = String(now.getHours()).padStart(2, '0');
+        const currentMinutes = String(now.getMinutes()).padStart(2, '0');
+        const currentTime = `${currentHours}:${currentMinutes}`;
+
+        schedules.forEach(s => {
+            if (s.time === currentTime && !s.executed) {
+                executeScheduleAction(s.action);
+                s.executed = true; 
+                renderSchedules();
+            }
+        });
+    }
+
+    function executeScheduleAction(action) {
+        if (action === 'power_off') { publishCommand('power', 'OFF'); }
+        else if (action === 'mode_auto') { publishCommand('mode', 'AUTO'); }
+        else if (action === 'mode_exhaust') { publishCommand('mode', 'EXHAUST'); }
+        else if (action === 'mode_intake') { publishCommand('mode', 'INTAKE'); }
+    }
+</script>
+
+</body>
+</html>
