@@ -38,11 +38,7 @@
         .card-title { font-size: 16px; font-weight: 600; margin: 0 0 15px 0; border-bottom: 1px solid #eee; padding-bottom: 10px; }
 
         /* Khóa giao diện khi chưa kết nối */
-        .lock-overlay {
-            opacity: 0.4;
-            pointer-events: none;
-            transition: opacity 0.3s;
-        }
+        .lock-overlay { opacity: 0.4; pointer-events: none; transition: opacity 0.3s; }
         .status-msg { color: var(--danger); font-weight: bold; text-align: center; margin-bottom: 15px; display: block; }
         .status-msg.connected { display: none; }
 
@@ -85,7 +81,14 @@
 <div class="container">
     <div class="header">
         <h2><i class="fa-solid fa-fan fa-spin" style="color: var(--primary);"></i> Máy HRV</h2>
-        <i id="wifiIcon" class="fa-solid fa-wifi wifi-status" title="Trạng thái kết nối"></i>
+        <div style="text-align: right; line-height: 1.2;">
+            <div><i id="wifiIcon" class="fa-solid fa-wifi wifi-status" title="Trạng thái Web -> MQTT"></i></div>
+            <div id="espWifiInfo" style="font-size: 12px; color: var(--text-muted); display: none; margin-top: 5px;">
+                <i class="fa-solid fa-signal" style="color: var(--success);"></i> 
+                <span id="espSsid" style="font-weight: bold;">Đang đọc...</span> 
+                (<span id="espRssi">0</span> dBm)
+            </div>
+        </div>
     </div>
 
     <div class="tabs">
@@ -167,6 +170,23 @@
 
     <div id="tab-settings" class="tab-content">
         <div class="card">
+            <h3 class="card-title" style="color: #d35400;"><i class="fa-solid fa-router"></i> Cập Nhật WiFi Cho Máy HRV</h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 0;">Lưu ý: ESP32 sẽ tự động khởi động lại sau khi nhận lệnh cập nhật.</p>
+            <div class="input-group">
+                <label>Tên WiFi mới (SSID)</label>
+                <input type="text" id="newWifiSsid" placeholder="Nhập tên mạng WiFi">
+            </div>
+            <div class="input-group">
+                <label>Mật khẩu WiFi</label>
+                <div class="input-wrapper">
+                    <input type="password" id="newWifiPass" placeholder="Nhập mật khẩu WiFi">
+                    <i class="fa-solid fa-eye-slash toggle-eye" onclick="toggleNewWifiPassword()" style="position: absolute; right: 12px; top: 12px; cursor: pointer;"></i>
+                </div>
+            </div>
+            <button class="btn-full" style="background-color: #d35400;" onclick="sendWifiUpdate()">Đổi WiFi ESP32</button>
+        </div>
+
+        <div class="card">
             <h3 class="card-title"><i class="fa-solid fa-network-wired"></i> Cấu Hình MQTT HiveMQ</h3>
             <div class="input-group">
                 <label>Host (WebSocket)</label>
@@ -189,7 +209,7 @@
 </div>
 
 <script>
-    let isPowerOn = false; // Biến này sẽ cập nhật thuần túy dựa vào phản hồi từ ESP32
+    let isPowerOn = false; 
     let mqttClient = null;
     let schedules = [];
 
@@ -207,7 +227,19 @@
 
     function togglePassword() {
         const passInput = document.getElementById('mqttPass');
-        const eyeIcon = document.querySelector('.toggle-eye');
+        const eyeIcon = passInput.nextElementSibling;
+        if (passInput.type === 'password') {
+            passInput.type = 'text';
+            eyeIcon.classList.replace('fa-eye-slash', 'fa-eye');
+        } else {
+            passInput.type = 'password';
+            eyeIcon.classList.replace('fa-eye', 'fa-eye-slash');
+        }
+    }
+
+    function toggleNewWifiPassword() {
+        const passInput = document.getElementById('newWifiPass');
+        const eyeIcon = passInput.nextElementSibling;
         if (passInput.type === 'password') {
             passInput.type = 'text';
             eyeIcon.classList.replace('fa-eye-slash', 'fa-eye');
@@ -247,11 +279,9 @@
                 controlWrapper.classList.remove('lock-overlay');
                 connectionWarning.classList.add('connected');
 
-                // ĐĂNG KÝ NHẬN TRẠNG THÁI THỰC TẾ TỪ ESP32 (Phản hồi 2 chiều)
                 mqttClient.subscribe("hrv/status/#");
             });
 
-            // XỬ LÝ DỮ LIỆU PHẢN HỒI TỪ ESP32 GỬI VỀ ĐỂ CẬP NHẬT GIAO DIỆN
             mqttClient.on('message', (topic, payload) => {
                 const msg = payload.toString();
                 console.log(`[MQTT Status] ${topic} -> ${msg}`);
@@ -289,6 +319,13 @@
                 else if (topic === "hrv/status/auto_duration") {
                     document.getElementById('autoDuration').value = msg;
                 }
+                else if (topic === "hrv/status/wifi_ssid") {
+                    document.getElementById('espWifiInfo').style.display = 'block';
+                    document.getElementById('espSsid').innerText = msg;
+                }
+                else if (topic === "hrv/status/wifi_rssi") {
+                    document.getElementById('espRssi').innerText = msg;
+                }
             });
 
             mqttClient.on('error', () => { handleDisconnect(wifiIcon, controlWrapper, connectionWarning); });
@@ -307,14 +344,11 @@
     function publishCommand(topic_suffix, payload) {
         const topic = `hrv/control/${topic_suffix}`;
         if (mqttClient && mqttClient.connected) {
-            // Thêm retain: true để lệnh điều khiển được lưu lại trên Broker đề phòng ESP ngắt kết nối tạm thời
             mqttClient.publish(topic, payload.toString(), { qos: 1, retain: true });
         }
     }
 
-    // --- CÁC HÀM GỬI LỆNH ĐIỀU KHIỂN (KHÔNG TỰ CẬP NHẬT UI TẠI ĐÂY) ---
     function togglePower() {
-        // Gửi lệnh ngược lại với biến trạng thái thực tại mà ESP32 đang báo cáo
         if (isPowerOn) {
             publishCommand('power', 'OFF');
         } else {
@@ -323,23 +357,17 @@
     }
 
     function setMode(mode) {
-        if (mode === 'hút') {
-            publishCommand('mode', 'EXHAUST');
-        } else if (mode === 'thổi') {
-            publishCommand('mode', 'INTAKE');
-        } else if (mode === 'tự động') {
-            publishCommand('mode', 'AUTO');
-        }
+        if (mode === 'hút') { publishCommand('mode', 'EXHAUST'); } 
+        else if (mode === 'thổi') { publishCommand('mode', 'INTAKE'); } 
+        else if (mode === 'tự động') { publishCommand('mode', 'AUTO'); }
     }
 
-    // Hàm này giữ nguyên để kéo thanh trượt mượt mà (Visual feedback tạm thời khi kéo)
     function updateSpeedLabel(mode, value) {
         if (mode === 'exhaust') document.getElementById('valExhaust').innerText = value + '%';
         if (mode === 'intake') document.getElementById('valIntake').innerText = value + '%';
         if (mode === 'auto') document.getElementById('valAuto').innerText = value + '%';
     }
 
-    // Chỉ khi thả tay ra (onchange), giá trị mới được gửi lên ESP32
     function publishSpeed(mode, value) { 
         publishCommand(`speed_${mode}`, value); 
     }
@@ -353,7 +381,25 @@
         }
     }
 
-    // --- LOGIC HẸN GIỜ THỜI GIAN THỰC THỰC THI QUA LỆNH MQTT ---
+    function sendWifiUpdate() {
+        const ssid = document.getElementById('newWifiSsid').value.trim();
+        const pass = document.getElementById('newWifiPass').value;
+
+        if (!ssid) {
+            alert("Vui lòng nhập tên WiFi!");
+            return;
+        }
+
+        if (confirm(`Bạn có chắc chắn muốn đổi mạng WiFi của máy HRV sang "${ssid}" không?\nMáy sẽ mất kết nối và khởi động lại ngay lập tức.`)) {
+            const payload = `${ssid}|${pass}`; 
+            publishCommand('update_wifi', payload);
+            
+            alert("Đã gửi cấu hình thành công! Vui lòng chờ khoảng 10-15 giây để ESP32 khởi động và kết nối vào mạng mới.");
+            document.getElementById('newWifiSsid').value = '';
+            document.getElementById('newWifiPass').value = '';
+        }
+    }
+
     function addSchedule() {
         const timeVal = document.getElementById('scheduleTime').value;
         const actionSel = document.getElementById('scheduleAction');
