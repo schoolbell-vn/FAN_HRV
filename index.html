@@ -43,14 +43,16 @@
         .input-wrapper { position: relative; }
         .input-wrapper input { width: 100%; padding: 10px 40px 10px 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
         .toggle-eye { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); cursor: pointer; }
-        .btn-full { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-full { width: 100%; padding: 12px; background: var(--success); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s;}
+        .btn-full:active { transform: scale(0.98); }
         .timer-row { display: flex; gap: 10px; margin-bottom: 15px; }
         .timer-row input, .timer-row select { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-family: inherit;}
         .schedule-list { list-style: none; padding: 0; margin: 15px 0 0 0; }
-        .schedule-item { display: flex; justify-content: space-between; background: #e9ecef; padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 14px; align-items: center;}
-        .del-btn { color: var(--danger); cursor: pointer; border: none; background: none; font-size: 16px; }
+        .schedule-item { display: flex; justify-content: space-between; background: #e9ecef; padding: 12px; border-radius: 8px; margin-bottom: 8px; font-size: 14px; align-items: center; border-left: 4px solid var(--primary);}
+        .action-btns { display: flex; gap: 12px; }
+        .edit-btn { color: var(--primary); cursor: pointer; border: none; background: none; font-size: 16px; padding: 0;}
+        .del-btn { color: var(--danger); cursor: pointer; border: none; background: none; font-size: 16px; padding: 0;}
         
-        /* Giao diện nút chọn ngày */
         .day-selector { display: flex; gap: 5px; margin-bottom: 15px; }
         .day-btn { flex: 1; text-align: center; padding: 8px 0; background: #e9ecef; color: var(--text-muted); border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; transition: 0.3s; user-select: none; border: 1px solid transparent;}
         .day-btn.active { background: var(--primary); color: white; border-color: #0056b3;}
@@ -96,7 +98,7 @@
                     <label style="color: var(--primary);"><i class="fa-solid fa-stopwatch"></i> Chu kỳ luân phiên Auto (giây):</label>
                     <div style="display: flex; gap: 10px;">
                         <input type="number" id="autoDuration" value="75" min="10" max="300" style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 8px;">
-                        <button class="btn-full" style="flex: 1; margin: 0; font-size: 14px;" onclick="publishAutoDuration()">Cập Nhật</button>
+                        <button class="btn-full" style="flex: 1; margin: 0; font-size: 14px; background-color: var(--primary);" onclick="publishAutoDuration()">Cập Nhật</button>
                     </div>
                 </div>
 
@@ -135,7 +137,7 @@
                     <div class="day-btn active" data-val="6">T7</div>
                     <div class="day-btn active" data-val="0">CN</div>
                 </div>
-                <button class="btn-full" style="background-color: var(--success);" onclick="addSchedule()">Gửi Lịch Trình Xuống ESP</button>
+                <button class="btn-full" id="btnSubmitSchedule" onclick="addSchedule()">Gửi Lịch Trình Xuống ESP</button>
                 <ul id="scheduleList" class="schedule-list"></ul>
             </div>
         </div>
@@ -166,7 +168,7 @@
                     <i class="fa-solid fa-eye-slash toggle-eye" onclick="togglePassword()"></i>
                 </div>
             </div>
-            <button class="btn-full" onclick="connectMQTT()">Kết Nối Lại Theo Thông Số Mới</button>
+            <button class="btn-full" style="background-color: var(--primary);" onclick="connectMQTT()">Kết Nối Lại Theo Thông Số Mới</button>
         </div>
     </div>
 </div>
@@ -177,7 +179,6 @@
     let schedules = [];
 
     document.addEventListener("DOMContentLoaded", function() {
-        // Gắn sự kiện click cho các nút chọn ngày
         document.querySelectorAll('.day-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 this.classList.toggle('active');
@@ -252,7 +253,6 @@
                 else if (topic === "hrv/status/wifi_ssid") { document.getElementById('espWifiInfo').style.display = 'block'; document.getElementById('espSsid').innerText = msg; }
                 else if (topic === "hrv/status/wifi_rssi") { document.getElementById('espRssi').innerText = msg; }
                 
-                // --- ĐỌC LỊCH TRÌNH VÀ GIẢI MÃ CHUỖI MỚI (CÓ NGÀY) ---
                 else if (topic === "hrv/status/schedules") {
                     schedules = [];
                     if (msg.trim() !== "") {
@@ -261,9 +261,7 @@
                             if (item.includes('=')) {
                                 let parts = item.split('='); 
                                 let leftPart = parts[0].split('|'); 
-                                
                                 let timeVal = leftPart[0];
-                                // Tương thích ngược: Nếu chuỗi cũ không có '|', mặc định là các ngày (0123456)
                                 let daysVal = leftPart.length > 1 ? leftPart[1] : "0123456"; 
                                 let actionVal = parts[1];
                                 
@@ -274,13 +272,7 @@
                                 else if (actionVal === 'mode_intake') textVal = 'Bật - Chỉ Thổi';
                                 
                                 if(timeVal && actionVal) {
-                                    schedules.push({ 
-                                        id: timeVal + "_" + daysVal, // ID giờ là tổ hợp giờ và ngày
-                                        time: timeVal, 
-                                        action: actionVal, 
-                                        text: textVal,
-                                        days: daysVal
-                                    });
+                                    schedules.push({ id: timeVal + "_" + daysVal, time: timeVal, action: actionVal, text: textVal, days: daysVal });
                                 }
                             }
                         });
@@ -336,7 +328,6 @@
         const actionVal = actionSel.value;
         const actionText = actionSel.options[actionSel.selectedIndex].text;
 
-        // Lấy danh sách các thứ đã chọn
         let selectedDays = [];
         document.querySelectorAll('.day-btn.active').forEach(btn => {
             selectedDays.push(btn.getAttribute('data-val'));
@@ -345,16 +336,15 @@
         if (!timeVal) return alert("Vui lòng chọn thời gian!");
         if (selectedDays.length === 0) return alert("Vui lòng chọn ít nhất 1 ngày trong tuần!");
 
-        let daysStr = selectedDays.join(''); // Ví dụ: "12345"
-
+        let daysStr = selectedDays.join(''); 
         let scheduleId = timeVal + "_" + daysStr;
         
-        // Ghi đè nếu trùng hoàn toàn giờ và thứ
         schedules = schedules.filter(s => s.id !== scheduleId);
         schedules.push({ id: scheduleId, time: timeVal, action: actionVal, text: actionText, days: daysStr });
         schedules.sort((a, b) => a.time.localeCompare(b.time));
 
         syncSchedulesToESP();
+        document.getElementById('scheduleTime').value = ''; // Reset form sau khi gửi
     }
 
     function removeSchedule(id) {
@@ -362,9 +352,34 @@
         syncSchedulesToESP();
     }
 
+    // --- LOGIC SỬA LỊCH TRÌNH ---
+    function editSchedule(id) {
+        const item = schedules.find(s => s.id === id);
+        if (!item) return;
+
+        // 1. Đưa dữ liệu lên Form
+        document.getElementById('scheduleTime').value = item.time;
+        document.getElementById('scheduleAction').value = item.action;
+        
+        document.querySelectorAll('.day-btn').forEach(btn => {
+            const dayVal = btn.getAttribute('data-val');
+            if (item.days.includes(dayVal)) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        // 2. Tạm thời xóa lịch cũ khỏi mảng cục bộ (Đừng gửi MQTT vội)
+        schedules = schedules.filter(s => s.id !== id);
+        renderSchedules();
+
+        // 3. Focus vào ô nhập giờ để chú ý
+        document.getElementById('scheduleTime').focus();
+    }
+
     function syncSchedulesToESP() {
         let payload = "";
-        // Đóng gói payload có thêm ngày: HH:MM|Days=Action
         schedules.forEach(s => { payload += `${s.time}|${s.days}=${s.action},`; });
         publishCommand('schedules', payload); 
     }
@@ -387,7 +402,10 @@
                         <b style="font-size: 16px;">${s.time}</b> - ${s.text} 
                         <span style="color:var(--primary); font-size: 12px; margin-left:5px;"><br>(${daysText})</span>
                     </div>
-                    <button class="del-btn" onclick="removeSchedule('${s.id}')"><i class="fa-solid fa-trash-can"></i></button>
+                    <div class="action-btns">
+                        <button class="edit-btn" onclick="editSchedule('${s.id}')" title="Sửa"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button class="del-btn" onclick="removeSchedule('${s.id}')" title="Xóa"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
                 </li>
             `;
         });
