@@ -13,62 +13,37 @@
             --bg-color: #f4f7f6; --card-bg: #ffffff; --text-dark: #333; --text-muted: #6c757d;
         }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-color); color: var(--text-dark);
-            margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center;
-        }
-
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-dark); margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
         .container { width: 100%; max-width: 500px; }
-
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 0 10px; }
         .header h2 { margin: 0; font-size: 22px; color: var(--primary); }
         .wifi-status { font-size: 24px; color: var(--danger); transition: color 0.3s; }
-
         .tabs { display: flex; gap: 10px; margin-bottom: 15px; }
-        .tab-btn {
-            flex: 1; padding: 12px; border: none; border-radius: 8px;
-            background: #e9ecef; color: var(--text-muted); font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.3s;
-        }
+        .tab-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; background: #e9ecef; color: var(--text-muted); font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.3s; }
         .tab-btn.active { background: var(--primary); color: white; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-
         .card { background-color: var(--card-bg); border-radius: 12px; padding: 20px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .card-title { font-size: 16px; font-weight: 600; margin: 0 0 15px 0; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-
-        /* Khóa giao diện khi chưa kết nối */
         .lock-overlay { opacity: 0.4; pointer-events: none; transition: opacity 0.3s; }
         .status-msg { color: var(--danger); font-weight: bold; text-align: center; margin-bottom: 15px; display: block; }
         .status-msg.connected { display: none; }
-
         .power-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .power-btn {
-            background: #eee; border: none; border-radius: 50%; width: 60px; height: 60px;
-            font-size: 24px; color: var(--text-muted); cursor: pointer; transition: 0.3s;
-        }
+        .power-btn { background: #eee; border: none; border-radius: 50%; width: 60px; height: 60px; font-size: 24px; color: var(--text-muted); cursor: pointer; transition: 0.3s; }
         .power-btn.active { background: var(--success); color: white; box-shadow: 0 4px 10px rgba(40, 167, 69, 0.4); }
-
         .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;}
-        .mode-btn {
-            padding: 12px 10px; border: 2px solid #eee; border-radius: 8px; background: white;
-            font-size: 14px; font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 5px;
-        }
+        .mode-btn { padding: 12px 10px; border: 2px solid #eee; border-radius: 8px; background: white; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 5px; }
         .mode-btn.active { border-color: var(--primary); color: var(--primary); background: #e6f2ff; }
         .auto-mode { grid-column: span 2; }
-
         .slider-group { margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #eee;}
         .slider-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; font-weight: 600;}
         input[type=range] { width: 100%; accent-color: var(--primary); }
-
         .input-group { margin-bottom: 15px; }
         .input-group label { display: block; margin-bottom: 5px; font-size: 14px; font-weight: 500;}
         .input-wrapper { position: relative; }
         .input-wrapper input { width: 100%; padding: 10px 40px 10px 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
         .toggle-eye { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); cursor: pointer; }
-        
         .btn-full { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        
         .timer-row { display: flex; gap: 10px; margin-bottom: 15px; }
         .timer-row input, .timer-row select { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-family: inherit;}
         .schedule-list { list-style: none; padding: 0; margin: 15px 0 0 0; }
@@ -85,8 +60,7 @@
             <div><i id="wifiIcon" class="fa-solid fa-wifi wifi-status" title="Trạng thái Web -> MQTT"></i></div>
             <div id="espWifiInfo" style="font-size: 12px; color: var(--text-muted); display: none; margin-top: 5px;">
                 <i class="fa-solid fa-signal" style="color: var(--success);"></i> 
-                <span id="espSsid" style="font-weight: bold;">Đang đọc...</span> 
-                (<span id="espRssi">0</span> dBm)
+                <span id="espSsid" style="font-weight: bold;">Đang đọc...</span> (<span id="espRssi">0</span> dBm)
             </div>
         </div>
     </div>
@@ -108,15 +82,9 @@
 
                 <h3 class="card-title" style="border:none; padding:0; margin-bottom: 10px;">Chế Độ Quạt</h3>
                 <div class="mode-grid">
-                    <button id="modeExhaust" class="mode-btn" onclick="setMode('hút')">
-                        <i class="fa-solid fa-arrow-right-from-bracket"></i> Chỉ Hút Ra
-                    </button>
-                    <button id="modeIntake" class="mode-btn" onclick="setMode('thổi')">
-                        <i class="fa-solid fa-arrow-right-to-bracket"></i> Chỉ Thổi Vào
-                    </button>
-                    <button id="modeAuto" class="mode-btn auto-mode" onclick="setMode('tự động')">
-                        <i class="fa-solid fa-rotate"></i> Chế Độ Tự Động
-                    </button>
+                    <button id="modeExhaust" class="mode-btn" onclick="setMode('hút')"><i class="fa-solid fa-arrow-right-from-bracket"></i> Chỉ Hút Ra</button>
+                    <button id="modeIntake" class="mode-btn" onclick="setMode('thổi')"><i class="fa-solid fa-arrow-right-to-bracket"></i> Chỉ Thổi Vào</button>
+                    <button id="modeAuto" class="mode-btn auto-mode" onclick="setMode('tự động')"><i class="fa-solid fa-rotate"></i> Chế Độ Tự Động</button>
                 </div>
 
                 <div class="input-group" style="background: #e6f2ff; padding: 10px; border-radius: 8px;">
@@ -129,30 +97,22 @@
 
                 <h3 class="card-title" style="border:none; padding:0; margin-top: 20px; margin-bottom: 10px;">Cài Đặt Tốc Độ Độc Lập</h3>
                 <div class="slider-group">
-                    <div class="slider-header">
-                        <span><i class="fa-solid fa-arrow-right-from-bracket" style="color:var(--text-muted)"></i> Tốc độ Hút</span>
-                        <span id="valExhaust">50%</span>
-                    </div>
+                    <div class="slider-header"><span><i class="fa-solid fa-arrow-right-from-bracket" style="color:var(--text-muted)"></i> Tốc độ Hút</span><span id="valExhaust">50%</span></div>
                     <input type="range" id="speedExhaust" min="10" max="100" value="50" oninput="updateSpeedLabel('exhaust', this.value)" onchange="publishSpeed('exhaust', this.value)">
                 </div>
                 <div class="slider-group">
-                    <div class="slider-header">
-                        <span><i class="fa-solid fa-arrow-right-to-bracket" style="color:var(--text-muted)"></i> Tốc độ Thổi</span>
-                        <span id="valIntake">50%</span>
-                    </div>
+                    <div class="slider-header"><span><i class="fa-solid fa-arrow-right-to-bracket" style="color:var(--text-muted)"></i> Tốc độ Thổi</span><span id="valIntake">50%</span></div>
                     <input type="range" id="speedIntake" min="10" max="100" value="50" oninput="updateSpeedLabel('intake', this.value)" onchange="publishSpeed('intake', this.value)">
                 </div>
                 <div class="slider-group">
-                    <div class="slider-header">
-                        <span><i class="fa-solid fa-rotate" style="color:var(--text-muted)"></i> Tốc độ Tự Động</span>
-                        <span id="valAuto">50%</span>
-                    </div>
+                    <div class="slider-header"><span><i class="fa-solid fa-rotate" style="color:var(--text-muted)"></i> Tốc độ Tự Động</span><span id="valAuto">50%</span></div>
                     <input type="range" id="speedAuto" min="10" max="100" value="50" oninput="updateSpeedLabel('auto', this.value)" onchange="publishSpeed('auto', this.value)">
                 </div>
             </div>
 
             <div class="card">
-                <h3 class="card-title"><i class="fa-regular fa-calendar-check"></i> Hẹn Giờ Theo Lịch</h3>
+                <h3 class="card-title"><i class="fa-regular fa-calendar-check"></i> Lịch Trình Tự Động Trên ESP32</h3>
+                <p style="font-size: 12px; color: var(--text-muted); margin-top: -10px;">Lịch trình được lưu trực tiếp vào bộ nhớ ESP32 và sẽ tự động lặp lại hằng ngày theo giờ đã định.</p>
                 <div class="timer-row">
                     <input type="time" id="scheduleTime" required>
                     <select id="scheduleAction">
@@ -162,7 +122,7 @@
                         <option value="mode_intake">Bật - Chỉ Thổi</option>
                     </select>
                 </div>
-                <button class="btn-full" style="background-color: var(--success);" onclick="addSchedule()">Thêm Lịch Trình</button>
+                <button class="btn-full" style="background-color: var(--success);" onclick="addSchedule()">Gửi Lịch Trình Xuống ESP</button>
                 <ul id="scheduleList" class="schedule-list"></ul>
             </div>
         </div>
@@ -172,10 +132,7 @@
         <div class="card">
             <h3 class="card-title" style="color: #d35400;"><i class="fa-solid fa-router"></i> Cập Nhật WiFi Cho Máy HRV</h3>
             <p style="font-size: 13px; color: var(--text-muted); margin-top: 0;">Lưu ý: ESP32 sẽ tự động khởi động lại sau khi nhận lệnh cập nhật.</p>
-            <div class="input-group">
-                <label>Tên WiFi mới (SSID)</label>
-                <input type="text" id="newWifiSsid" placeholder="Nhập tên mạng WiFi">
-            </div>
+            <div class="input-group"><label>Tên WiFi mới (SSID)</label><input type="text" id="newWifiSsid" placeholder="Nhập tên mạng WiFi"></div>
             <div class="input-group">
                 <label>Mật khẩu WiFi</label>
                 <div class="input-wrapper">
@@ -188,14 +145,8 @@
 
         <div class="card">
             <h3 class="card-title"><i class="fa-solid fa-network-wired"></i> Cấu Hình MQTT HiveMQ</h3>
-            <div class="input-group">
-                <label>Host (WebSocket)</label>
-                <input type="text" id="mqttHost" value="8ad81fd739c94d97b17cebcdcca8b52b.s1.eu.hivemq.cloud">
-            </div>
-            <div class="input-group">
-                <label>Username</label>
-                <input type="text" id="mqttUser" value="ngoctuyka">
-            </div>
+            <div class="input-group"><label>Host (WebSocket)</label><input type="text" id="mqttHost" value="8ad81fd739c94d97b17cebcdcca8b52b.s1.eu.hivemq.cloud"></div>
+            <div class="input-group"><label>Username</label><input type="text" id="mqttUser" value="ngoctuyka"></div>
             <div class="input-group">
                 <label>Password</label>
                 <div class="input-wrapper">
@@ -213,10 +164,7 @@
     let mqttClient = null;
     let schedules = [];
 
-    window.onload = function() {
-        connectMQTT();
-        setInterval(checkSchedules, 10000); 
-    };
+    window.onload = function() { connectMQTT(); };
 
     function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -228,25 +176,15 @@
     function togglePassword() {
         const passInput = document.getElementById('mqttPass');
         const eyeIcon = passInput.nextElementSibling;
-        if (passInput.type === 'password') {
-            passInput.type = 'text';
-            eyeIcon.classList.replace('fa-eye-slash', 'fa-eye');
-        } else {
-            passInput.type = 'password';
-            eyeIcon.classList.replace('fa-eye', 'fa-eye-slash');
-        }
+        if (passInput.type === 'password') { passInput.type = 'text'; eyeIcon.classList.replace('fa-eye-slash', 'fa-eye'); } 
+        else { passInput.type = 'password'; eyeIcon.classList.replace('fa-eye', 'fa-eye-slash'); }
     }
 
     function toggleNewWifiPassword() {
         const passInput = document.getElementById('newWifiPass');
         const eyeIcon = passInput.nextElementSibling;
-        if (passInput.type === 'password') {
-            passInput.type = 'text';
-            eyeIcon.classList.replace('fa-eye-slash', 'fa-eye');
-        } else {
-            passInput.type = 'password';
-            eyeIcon.classList.replace('fa-eye', 'fa-eye-slash');
-        }
+        if (passInput.type === 'password') { passInput.type = 'text'; eyeIcon.classList.replace('fa-eye-slash', 'fa-eye'); } 
+        else { passInput.type = 'password'; eyeIcon.classList.replace('fa-eye', 'fa-eye-slash'); }
     }
 
     function connectMQTT() {
@@ -254,152 +192,111 @@
         const user = document.getElementById('mqttUser').value;
         const pass = document.getElementById('mqttPass').value;
         const wifiIcon = document.getElementById('wifiIcon');
-        
         const controlWrapper = document.getElementById('controlWrapper');
         const connectionWarning = document.getElementById('connectionWarning');
 
         wifiIcon.style.color = 'var(--warning)'; 
         const brokerUrl = `wss://${host}:8884/mqtt`;
-        
-        const options = {
-            clientId: 'HRV_Web_' + Math.random().toString(16).substr(2, 8),
-            username: user,
-            password: pass
-        };
+        const options = { clientId: 'HRV_Web_' + Math.random().toString(16).substr(2, 8), username: user, password: pass };
 
         if(mqttClient) mqttClient.end();
 
         try {
             mqttClient = mqtt.connect(brokerUrl, options);
-            
             mqttClient.on('connect', () => { 
                 wifiIcon.style.color = 'var(--success)'; 
-                console.log("Đã kết nối HiveMQ!"); 
-                
                 controlWrapper.classList.remove('lock-overlay');
                 connectionWarning.classList.add('connected');
-
                 mqttClient.subscribe("hrv/status/#");
             });
 
             mqttClient.on('message', (topic, payload) => {
                 const msg = payload.toString();
-                console.log(`[MQTT Status] ${topic} -> ${msg}`);
-
                 if (topic === "hrv/status/power") {
                     isPowerOn = (msg === "ON");
                     const btn = document.getElementById('powerBtn');
-                    if (isPowerOn) {
-                        btn.classList.add('active');
-                    } else {
-                        btn.classList.remove('active');
-                    }
+                    if (isPowerOn) btn.classList.add('active'); else btn.classList.remove('active');
                 }
                 else if (topic === "hrv/status/mode") {
                     document.getElementById('modeExhaust').classList.remove('active');
                     document.getElementById('modeIntake').classList.remove('active');
                     document.getElementById('modeAuto').classList.remove('active');
-
                     if (msg === "EXHAUST") document.getElementById('modeExhaust').classList.add('active');
                     else if (msg === "INTAKE") document.getElementById('modeIntake').classList.add('active');
                     else if (msg === "AUTO") document.getElementById('modeAuto').classList.add('active');
                 }
-                else if (topic === "hrv/status/speed_exhaust") {
-                    document.getElementById('speedExhaust').value = msg;
-                    document.getElementById('valExhaust').innerText = msg + '%';
-                }
-                else if (topic === "hrv/status/speed_intake") {
-                    document.getElementById('speedIntake').value = msg;
-                    document.getElementById('valIntake').innerText = msg + '%';
-                }
-                else if (topic === "hrv/status/speed_auto") {
-                    document.getElementById('speedAuto').value = msg;
-                    document.getElementById('valAuto').innerText = msg + '%';
-                }
-                else if (topic === "hrv/status/auto_duration") {
-                    document.getElementById('autoDuration').value = msg;
-                }
-                else if (topic === "hrv/status/wifi_ssid") {
-                    document.getElementById('espWifiInfo').style.display = 'block';
-                    document.getElementById('espSsid').innerText = msg;
-                }
-                else if (topic === "hrv/status/wifi_rssi") {
-                    document.getElementById('espRssi').innerText = msg;
+                else if (topic === "hrv/status/speed_exhaust") { document.getElementById('speedExhaust').value = msg; document.getElementById('valExhaust').innerText = msg + '%'; }
+                else if (topic === "hrv/status/speed_intake") { document.getElementById('speedIntake').value = msg; document.getElementById('valIntake').innerText = msg + '%'; }
+                else if (topic === "hrv/status/speed_auto") { document.getElementById('speedAuto').value = msg; document.getElementById('valAuto').innerText = msg + '%'; }
+                else if (topic === "hrv/status/auto_duration") { document.getElementById('autoDuration').value = msg; }
+                else if (topic === "hrv/status/wifi_ssid") { document.getElementById('espWifiInfo').style.display = 'block'; document.getElementById('espSsid').innerText = msg; }
+                else if (topic === "hrv/status/wifi_rssi") { document.getElementById('espRssi').innerText = msg; }
+                // --- ĐỌC LỊCH TRÌNH TỪ ESP32 SAU KHI F5 ---
+                else if (topic === "hrv/status/schedules") {
+                    schedules = [];
+                    if (msg.trim() !== "") {
+                        let items = msg.split(',');
+                        items.forEach(item => {
+                            if (item.includes('=')) {
+                                let parts = item.split('=');
+                                let timeVal = parts[0];
+                                let actionVal = parts[1];
+                                let textVal = "";
+                                if (actionVal === 'power_off') textVal = 'Tắt Máy';
+                                else if (actionVal === 'mode_auto') textVal = 'Bật - Tự Động';
+                                else if (actionVal === 'mode_exhaust') textVal = 'Bật - Chỉ Hút';
+                                else if (actionVal === 'mode_intake') textVal = 'Bật - Chỉ Thổi';
+                                
+                                if(timeVal && actionVal) schedules.push({ time: timeVal, action: actionVal, text: textVal });
+                            }
+                        });
+                        schedules.sort((a, b) => a.time.localeCompare(b.time));
+                    }
+                    renderSchedules();
                 }
             });
 
             mqttClient.on('error', () => { handleDisconnect(wifiIcon, controlWrapper, connectionWarning); });
             mqttClient.on('offline', () => { handleDisconnect(wifiIcon, controlWrapper, connectionWarning); });
-        } catch (err) {
-            handleDisconnect(wifiIcon, controlWrapper, connectionWarning);
-        }
+        } catch (err) { handleDisconnect(wifiIcon, controlWrapper, connectionWarning); }
     }
 
-    function handleDisconnect(icon, wrapper, warning) {
-        icon.style.color = 'var(--danger)';
-        wrapper.classList.add('lock-overlay');
-        warning.classList.remove('connected');
-    }
+    function handleDisconnect(icon, wrapper, warning) { icon.style.color = 'var(--danger)'; wrapper.classList.add('lock-overlay'); warning.classList.remove('connected'); }
 
     function publishCommand(topic_suffix, payload) {
-        const topic = `hrv/control/${topic_suffix}`;
         if (mqttClient && mqttClient.connected) {
-            mqttClient.publish(topic, payload.toString(), { qos: 1, retain: true });
+            mqttClient.publish(`hrv/control/${topic_suffix}`, payload.toString(), { qos: 1, retain: true });
         }
     }
 
-    function togglePower() {
-        if (isPowerOn) {
-            publishCommand('power', 'OFF');
-        } else {
-            publishCommand('power', 'ON');
-        }
+    function togglePower() { publishCommand('power', isPowerOn ? 'OFF' : 'ON'); }
+    function setMode(mode) { 
+        if (mode === 'hút') publishCommand('mode', 'EXHAUST'); 
+        else if (mode === 'thổi') publishCommand('mode', 'INTAKE'); 
+        else if (mode === 'tự động') publishCommand('mode', 'AUTO'); 
     }
-
-    function setMode(mode) {
-        if (mode === 'hút') { publishCommand('mode', 'EXHAUST'); } 
-        else if (mode === 'thổi') { publishCommand('mode', 'INTAKE'); } 
-        else if (mode === 'tự động') { publishCommand('mode', 'AUTO'); }
-    }
-
     function updateSpeedLabel(mode, value) {
         if (mode === 'exhaust') document.getElementById('valExhaust').innerText = value + '%';
         if (mode === 'intake') document.getElementById('valIntake').innerText = value + '%';
         if (mode === 'auto') document.getElementById('valAuto').innerText = value + '%';
     }
-
-    function publishSpeed(mode, value) { 
-        publishCommand(`speed_${mode}`, value); 
-    }
-
+    function publishSpeed(mode, value) { publishCommand(`speed_${mode}`, value); }
     function publishAutoDuration() {
         const duration = document.getElementById('autoDuration').value;
-        if(duration >= 10) {
-            publishCommand('auto_duration', duration);
-        } else {
-            alert("Vui lòng nhập tối thiểu 10s.");
-        }
+        if(duration >= 10) publishCommand('auto_duration', duration); else alert("Vui lòng nhập tối thiểu 10s.");
     }
-
     function sendWifiUpdate() {
         const ssid = document.getElementById('newWifiSsid').value.trim();
         const pass = document.getElementById('newWifiPass').value;
-
-        if (!ssid) {
-            alert("Vui lòng nhập tên WiFi!");
-            return;
-        }
-
-        if (confirm(`Bạn có chắc chắn muốn đổi mạng WiFi của máy HRV sang "${ssid}" không?\nMáy sẽ mất kết nối và khởi động lại ngay lập tức.`)) {
-            const payload = `${ssid}|${pass}`; 
-            publishCommand('update_wifi', payload);
-            
-            alert("Đã gửi cấu hình thành công! Vui lòng chờ khoảng 10-15 giây để ESP32 khởi động và kết nối vào mạng mới.");
-            document.getElementById('newWifiSsid').value = '';
-            document.getElementById('newWifiPass').value = '';
+        if (!ssid) return alert("Vui lòng nhập tên WiFi!");
+        if (confirm(`Bạn có chắc chắn đổi WiFi sang "${ssid}"? Máy sẽ khởi động lại.`)) {
+            publishCommand('update_wifi', `${ssid}|${pass}`);
+            alert("Đã gửi! Vui lòng chờ ESP32 kết nối mạng mới.");
+            document.getElementById('newWifiSsid').value = ''; document.getElementById('newWifiPass').value = '';
         }
     }
 
+    // --- LOGIC HẸN GIỜ ĐÃ ĐƯỢC CHUYỂN SANG ĐỒNG BỘ VỚI ESP32 ---
     function addSchedule() {
         const timeVal = document.getElementById('scheduleTime').value;
         const actionSel = document.getElementById('scheduleAction');
@@ -408,55 +305,39 @@
 
         if (!timeVal) return alert("Vui lòng chọn thời gian!");
 
-        const newId = Date.now();
-        schedules.push({ id: newId, time: timeVal, action: actionVal, text: actionText, executed: false });
-        renderSchedules();
+        // Lọc bỏ trùng lặp nếu cùng 1 mốc giờ
+        schedules = schedules.filter(s => s.time !== timeVal);
+        schedules.push({ time: timeVal, action: actionVal, text: actionText });
+        schedules.sort((a, b) => a.time.localeCompare(b.time));
+
+        syncSchedulesToESP();
     }
 
-    function removeSchedule(id) {
-        schedules = schedules.filter(s => s.id !== id);
-        renderSchedules();
+    function removeSchedule(timeVal) {
+        schedules = schedules.filter(s => s.time !== timeVal);
+        syncSchedulesToESP();
+    }
+
+    function syncSchedulesToESP() {
+        let payload = "";
+        schedules.forEach(s => { payload += `${s.time}=${s.action},`; });
+        publishCommand('schedules', payload); // Gửi xuống ESP32
     }
 
     function renderSchedules() {
         const list = document.getElementById('scheduleList');
         list.innerHTML = '';
         schedules.forEach(s => {
-            let bgColor = s.executed ? '#d4edda' : '#e9ecef';
             list.innerHTML += `
-                <li class="schedule-item" style="background: ${bgColor};">
+                <li class="schedule-item">
                     <div>
                         <b style="font-size: 16px;">${s.time}</b> - ${s.text} 
-                        ${s.executed ? '<span style="color:green; font-size: 12px;">(Đã chạy)</span>' : ''}
+                        <span style="color:var(--primary); font-size: 12px; margin-left:5px;"><br>(Hằng ngày)</span>
                     </div>
-                    <button class="del-btn" onclick="removeSchedule(${s.id})"><i class="fa-solid fa-trash-can"></i></button>
+                    <button class="del-btn" onclick="removeSchedule('${s.time}')"><i class="fa-solid fa-trash-can"></i></button>
                 </li>
             `;
         });
-    }
-
-    function checkSchedules() {
-        if(schedules.length === 0) return;
-        
-        const now = new Date();
-        const currentHours = String(now.getHours()).padStart(2, '0');
-        const currentMinutes = String(now.getMinutes()).padStart(2, '0');
-        const currentTime = `${currentHours}:${currentMinutes}`;
-
-        schedules.forEach(s => {
-            if (s.time === currentTime && !s.executed) {
-                executeScheduleAction(s.action);
-                s.executed = true; 
-                renderSchedules();
-            }
-        });
-    }
-
-    function executeScheduleAction(action) {
-        if (action === 'power_off') { publishCommand('power', 'OFF'); }
-        else if (action === 'mode_auto') { publishCommand('mode', 'AUTO'); }
-        else if (action === 'mode_exhaust') { publishCommand('mode', 'EXHAUST'); }
-        else if (action === 'mode_intake') { publishCommand('mode', 'INTAKE'); }
     }
 </script>
 
