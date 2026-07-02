@@ -49,6 +49,11 @@
         .schedule-list { list-style: none; padding: 0; margin: 15px 0 0 0; }
         .schedule-item { display: flex; justify-content: space-between; background: #e9ecef; padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 14px; align-items: center;}
         .del-btn { color: var(--danger); cursor: pointer; border: none; background: none; font-size: 16px; }
+        
+        /* Giao diện nút chọn ngày */
+        .day-selector { display: flex; gap: 5px; margin-bottom: 15px; }
+        .day-btn { flex: 1; text-align: center; padding: 8px 0; background: #e9ecef; color: var(--text-muted); border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; transition: 0.3s; user-select: none; border: 1px solid transparent;}
+        .day-btn.active { background: var(--primary); color: white; border-color: #0056b3;}
     </style>
 </head>
 <body>
@@ -112,7 +117,6 @@
 
             <div class="card">
                 <h3 class="card-title"><i class="fa-regular fa-calendar-check"></i> Lịch Trình Tự Động Trên ESP32</h3>
-                <p style="font-size: 12px; color: var(--text-muted); margin-top: -10px;">Lịch trình được lưu trực tiếp vào bộ nhớ ESP32 và sẽ tự động lặp lại hằng ngày theo giờ đã định.</p>
                 <div class="timer-row">
                     <input type="time" id="scheduleTime" required>
                     <select id="scheduleAction">
@@ -121,6 +125,15 @@
                         <option value="mode_exhaust">Bật - Chỉ Hút</option>
                         <option value="mode_intake">Bật - Chỉ Thổi</option>
                     </select>
+                </div>
+                <div class="day-selector">
+                    <div class="day-btn active" data-val="1">T2</div>
+                    <div class="day-btn active" data-val="2">T3</div>
+                    <div class="day-btn active" data-val="3">T4</div>
+                    <div class="day-btn active" data-val="4">T5</div>
+                    <div class="day-btn active" data-val="5">T6</div>
+                    <div class="day-btn active" data-val="6">T7</div>
+                    <div class="day-btn active" data-val="0">CN</div>
                 </div>
                 <button class="btn-full" style="background-color: var(--success);" onclick="addSchedule()">Gửi Lịch Trình Xuống ESP</button>
                 <ul id="scheduleList" class="schedule-list"></ul>
@@ -131,7 +144,6 @@
     <div id="tab-settings" class="tab-content">
         <div class="card">
             <h3 class="card-title" style="color: #d35400;"><i class="fa-solid fa-router"></i> Cập Nhật WiFi Cho Máy HRV</h3>
-            <p style="font-size: 13px; color: var(--text-muted); margin-top: 0;">Lưu ý: ESP32 sẽ tự động khởi động lại sau khi nhận lệnh cập nhật.</p>
             <div class="input-group"><label>Tên WiFi mới (SSID)</label><input type="text" id="newWifiSsid" placeholder="Nhập tên mạng WiFi"></div>
             <div class="input-group">
                 <label>Mật khẩu WiFi</label>
@@ -164,7 +176,15 @@
     let mqttClient = null;
     let schedules = [];
 
-    window.onload = function() { connectMQTT(); };
+    document.addEventListener("DOMContentLoaded", function() {
+        // Gắn sự kiện click cho các nút chọn ngày
+        document.querySelectorAll('.day-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                this.classList.toggle('active');
+            });
+        });
+        connectMQTT(); 
+    });
 
     function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -231,23 +251,37 @@
                 else if (topic === "hrv/status/auto_duration") { document.getElementById('autoDuration').value = msg; }
                 else if (topic === "hrv/status/wifi_ssid") { document.getElementById('espWifiInfo').style.display = 'block'; document.getElementById('espSsid').innerText = msg; }
                 else if (topic === "hrv/status/wifi_rssi") { document.getElementById('espRssi').innerText = msg; }
-                // --- ĐỌC LỊCH TRÌNH TỪ ESP32 SAU KHI F5 ---
+                
+                // --- ĐỌC LỊCH TRÌNH VÀ GIẢI MÃ CHUỖI MỚI (CÓ NGÀY) ---
                 else if (topic === "hrv/status/schedules") {
                     schedules = [];
                     if (msg.trim() !== "") {
                         let items = msg.split(',');
                         items.forEach(item => {
                             if (item.includes('=')) {
-                                let parts = item.split('=');
-                                let timeVal = parts[0];
+                                let parts = item.split('='); 
+                                let leftPart = parts[0].split('|'); 
+                                
+                                let timeVal = leftPart[0];
+                                // Tương thích ngược: Nếu chuỗi cũ không có '|', mặc định là các ngày (0123456)
+                                let daysVal = leftPart.length > 1 ? leftPart[1] : "0123456"; 
                                 let actionVal = parts[1];
+                                
                                 let textVal = "";
                                 if (actionVal === 'power_off') textVal = 'Tắt Máy';
                                 else if (actionVal === 'mode_auto') textVal = 'Bật - Tự Động';
                                 else if (actionVal === 'mode_exhaust') textVal = 'Bật - Chỉ Hút';
                                 else if (actionVal === 'mode_intake') textVal = 'Bật - Chỉ Thổi';
                                 
-                                if(timeVal && actionVal) schedules.push({ time: timeVal, action: actionVal, text: textVal });
+                                if(timeVal && actionVal) {
+                                    schedules.push({ 
+                                        id: timeVal + "_" + daysVal, // ID giờ là tổ hợp giờ và ngày
+                                        time: timeVal, 
+                                        action: actionVal, 
+                                        text: textVal,
+                                        days: daysVal
+                                    });
+                                }
                             }
                         });
                         schedules.sort((a, b) => a.time.localeCompare(b.time));
@@ -296,45 +330,64 @@
         }
     }
 
-    // --- LOGIC HẸN GIỜ ĐÃ ĐƯỢC CHUYỂN SANG ĐỒNG BỘ VỚI ESP32 ---
     function addSchedule() {
         const timeVal = document.getElementById('scheduleTime').value;
         const actionSel = document.getElementById('scheduleAction');
         const actionVal = actionSel.value;
         const actionText = actionSel.options[actionSel.selectedIndex].text;
 
+        // Lấy danh sách các thứ đã chọn
+        let selectedDays = [];
+        document.querySelectorAll('.day-btn.active').forEach(btn => {
+            selectedDays.push(btn.getAttribute('data-val'));
+        });
+        
         if (!timeVal) return alert("Vui lòng chọn thời gian!");
+        if (selectedDays.length === 0) return alert("Vui lòng chọn ít nhất 1 ngày trong tuần!");
 
-        // Lọc bỏ trùng lặp nếu cùng 1 mốc giờ
-        schedules = schedules.filter(s => s.time !== timeVal);
-        schedules.push({ time: timeVal, action: actionVal, text: actionText });
+        let daysStr = selectedDays.join(''); // Ví dụ: "12345"
+
+        let scheduleId = timeVal + "_" + daysStr;
+        
+        // Ghi đè nếu trùng hoàn toàn giờ và thứ
+        schedules = schedules.filter(s => s.id !== scheduleId);
+        schedules.push({ id: scheduleId, time: timeVal, action: actionVal, text: actionText, days: daysStr });
         schedules.sort((a, b) => a.time.localeCompare(b.time));
 
         syncSchedulesToESP();
     }
 
-    function removeSchedule(timeVal) {
-        schedules = schedules.filter(s => s.time !== timeVal);
+    function removeSchedule(id) {
+        schedules = schedules.filter(s => s.id !== id);
         syncSchedulesToESP();
     }
 
     function syncSchedulesToESP() {
         let payload = "";
-        schedules.forEach(s => { payload += `${s.time}=${s.action},`; });
-        publishCommand('schedules', payload); // Gửi xuống ESP32
+        // Đóng gói payload có thêm ngày: HH:MM|Days=Action
+        schedules.forEach(s => { payload += `${s.time}|${s.days}=${s.action},`; });
+        publishCommand('schedules', payload); 
+    }
+
+    function getDaysText(daysStr) {
+        if (daysStr.length === 7) return "Hằng ngày";
+        let map = {'1':'T2', '2':'T3', '3':'T4', '4':'T5', '5':'T6', '6':'T7', '0':'CN'};
+        let arr = daysStr.split('').map(d => map[d]);
+        return arr.join(', ');
     }
 
     function renderSchedules() {
         const list = document.getElementById('scheduleList');
         list.innerHTML = '';
         schedules.forEach(s => {
+            let daysText = getDaysText(s.days);
             list.innerHTML += `
                 <li class="schedule-item">
                     <div>
                         <b style="font-size: 16px;">${s.time}</b> - ${s.text} 
-                        <span style="color:var(--primary); font-size: 12px; margin-left:5px;"><br>(Hằng ngày)</span>
+                        <span style="color:var(--primary); font-size: 12px; margin-left:5px;"><br>(${daysText})</span>
                     </div>
-                    <button class="del-btn" onclick="removeSchedule('${s.time}')"><i class="fa-solid fa-trash-can"></i></button>
+                    <button class="del-btn" onclick="removeSchedule('${s.id}')"><i class="fa-solid fa-trash-can"></i></button>
                 </li>
             `;
         });
