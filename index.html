@@ -71,6 +71,12 @@
         .clock-title { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #a8c0ff; font-weight: bold;}
         .clock-time { font-size: 42px; font-weight: bold; font-family: 'Courier New', Courier, monospace; letter-spacing: 3px; margin: 5px 0; text-shadow: 0px 2px 4px rgba(0,0,0,0.3); }
         .clock-date { font-size: 14px; opacity: 0.9; }
+
+        /* Bảng tốc độ RPM */
+        .rpm-display { background: #e6f2ff; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 15px; border: 2px solid #b3d7ff; }
+        .rpm-title { font-size: 12px; font-weight: bold; text-transform: uppercase; color: var(--primary); margin-bottom: 5px;}
+        .rpm-value { font-size: 32px; font-weight: bold; font-family: monospace; color: #333; }
+        .rpm-unit { font-size: 14px; font-weight: normal; color: var(--text-muted); }
     </style>
 </head>
 <body>
@@ -103,6 +109,12 @@
         <span id="connectionWarning" class="status-msg">⚠️ Đang chờ kết nối từ máy HRV (ESP32)...</span>
         
         <div id="controlWrapper" class="lock-overlay">
+            
+            <div class="rpm-display">
+                <div class="rpm-title"><i class="fa-solid fa-gauge-high"></i> Tốc độ thực tế động cơ</div>
+                <div class="rpm-value"><span id="realRpm">0</span> <span class="rpm-unit">vòng/phút</span></div>
+            </div>
+
             <div class="card">
                 <div class="power-section">
                     <span style="font-weight: 600; font-size: 16px;">Nguồn Chính</span>
@@ -280,14 +292,13 @@
         try {
             mqttClient = mqtt.connect(brokerUrl, options);
             mqttClient.on('connect', () => { 
-                wifiIcon.style.color = 'var(--success)'; // Web đã vào tới Server
+                wifiIcon.style.color = 'var(--success)'; 
                 mqttClient.subscribe("hrv/status/#");
             });
 
             mqttClient.on('message', (topic, payload) => {
                 const msg = payload.toString();
                 
-                // --- XỬ LÝ LWT (KIỂM TRA ESP32 CÓ ONLINE HAY KHÔNG) ---
                 if (topic === "hrv/status/connection") {
                     const controlWrapper = document.getElementById('controlWrapper');
                     const warning = document.getElementById('connectionWarning');
@@ -297,12 +308,19 @@
                         isEspOnline = true;
                         controlWrapper.classList.remove('lock-overlay');
                         warning.classList.add('connected');
-                    } else { // OFFLINE
+                    } else { 
                         isEspOnline = false;
                         controlWrapper.classList.add('lock-overlay');
                         warning.classList.remove('connected');
                         warning.innerHTML = "⚠️ Máy HRV đang bị tắt điện hoặc mất kết nối mạng.";
-                        espWifiInfo.style.display = 'none'; // Giấu thông tin WiFi cũ đi
+                        espWifiInfo.style.display = 'none'; 
+                    }
+                }
+
+                // ĐỌC THÔNG SỐ VÒNG QUAY RPM TỪ ESP32 ĐẨY LÊN
+                else if (topic === "hrv/status/rpm") {
+                    if (isEspOnline) {
+                        document.getElementById('realRpm').innerText = msg;
                     }
                 }
 
@@ -310,6 +328,8 @@
                     isPowerOn = (msg === "ON");
                     const btn = document.getElementById('powerBtn');
                     if (isPowerOn) btn.classList.add('active'); else btn.classList.remove('active');
+                    // Nếu tắt nguồn, đưa RPM về 0 trên giao diện
+                    if(!isPowerOn) document.getElementById('realRpm').innerText = "0";
                 }
                 else if (topic === "hrv/status/mode") {
                     document.getElementById('modeExhaust').classList.remove('active');
